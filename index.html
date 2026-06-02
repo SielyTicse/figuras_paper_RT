@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Validation statistics - interactive map</title>
+  <script src="https://cdn.plot.ly/plotly-3.1.0.min.js"></script>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; background: #f6f7fb; color: #222; }
+    .wrap { max-width: 1300px; margin: 0 auto; padding: 24px; }
+    .card { background: #fff; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,0.08); padding: 22px; }
+    h1 { margin: 0 0 10px 0; font-size: 28px; }
+    .subtitle { color: #555; margin-bottom: 14px; line-height: 1.45; }
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0 14px 0; }
+    select { font-size: 15px; padding: 8px 10px; border-radius: 8px; border: 1px solid #b8c2d6; background: white; }
+    .stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 14px 0; }
+    .pill { background: #eef3ff; border: 1px solid #dbe5ff; color: #244a9b; padding: 8px 12px; border-radius: 999px; font-size: 14px; }
+    #plot { width: 100%; height: 76vh; min-height: 620px; }
+    .links { margin: 10px 0 4px 0; }
+    .links a { color: #0a58ca; text-decoration: none; margin-right: 16px; }
+    .links a:hover { text-decoration: underline; }
+    .note, .error { color: #555; font-size: 13px; margin-top: 10px; }
+    .error { color: #9b1c1c; background: #fff0f0; border: 1px solid #ffd0d0; padding: 10px; border-radius: 8px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Validation statistics</h1>
+      <div class="subtitle">
+        Mapa interactivo generado desde <code>bias_points.csv</code>. Elige una estadística para colorear las estaciones.
+      </div>
+
+      <div class="controls">
+        <label for="metricSelect"><b>Variable:</b></label>
+        <select id="metricSelect">
+          <option value="Corr.">Corr.</option>
+          <option value="Bias">Bias</option>
+          <option value="RMSE">RMSE</option>
+          <option value="NRMSE_prct">NRMSE_prct</option>
+          <option value="NBias">NBias</option>
+        </select>
+      </div>
+
+      <div class="stats" id="stats"></div>
+      <div class="links"><a href="bias_points.csv" download>Descargar CSV</a></div>
+      <div id="plot"></div>
+      <div id="error" class="error"></div>
+      <div class="note">
+        Rangos fijos: Corr. [-0.2, 1], Bias [-2, 2] cm, RMSE [0, 22] cm,
+        NRMSE_prct [0, 24] %, NBias [-5, 5]. Los valores fuera de rango se saturan en color,
+        pero el hover muestra el valor real. Versión multi-variable.
+      </div>
+    </div>
+  </div>
+
+<script>
+const PALETTES = {"Corr.": [[0.0, "rgb(84,72,103)"], [0.032258, "rgb(84,72,103)"], [0.064516, "rgb(84,72,103)"], [0.096774, "rgb(84,72,103)"], [0.129032, "rgb(84,72,103)"], [0.16129, "rgb(84,72,103)"], [0.193548, "rgb(84,72,103)"], [0.225806, "rgb(84,72,103)"], [0.258065, "rgb(84,72,103)"], [0.290323, "rgb(84,72,103)"], [0.322581, "rgb(95,83,113)"], [0.354839, "rgb(108,99,122)"], [0.387097, "rgb(121,115,131)"], [0.419355, "rgb(134,131,140)"], [0.451613, "rgb(148,147,149)"], [0.483871, "rgb(112,163,112)"], [0.516129, "rgb(44,180,44)"], [0.548387, "rgb(0,175,0)"], [0.580645, "rgb(0,128,0)"], [0.612903, "rgb(35,117,0)"], [0.645161, "rgb(115,151,0)"], [0.677419, "rgb(178,171,0)"], [0.709677, "rgb(178,131,0)"], [0.741935, "rgb(178,91,0)"], [0.774194, "rgb(209,46,0)"], [0.806452, "rgb(252,0,0)"], [0.83871, "rgb(180,0,0)"], [0.870968, "rgb(148,0,35)"], [0.903226, "rgb(165,0,115)"], [0.935484, "rgb(173,11,184)"], [0.967742, "rgb(164,73,209)"], [1.0, "rgb(209,164,232)"]], "Bias": [[0.0, "rgb(49,54,149)"], [0.2, "rgb(69,117,180)"], [0.4, "rgb(171,217,233)"], [0.5, "rgb(255,255,255)"], [0.6, "rgb(253,174,97)"], [0.8, "rgb(215,48,39)"], [1.0, "rgb(165,0,38)"]], "RMSE": [[0.0, "rgb(255,255,255)"], [0.034483, "rgb(255,255,223)"], [0.068966, "rgb(255,255,191)"], [0.103448, "rgb(255,255,159)"], [0.137931, "rgb(255,255,128)"], [0.172414, "rgb(255,255,96)"], [0.206897, "rgb(255,255,64)"], [0.241379, "rgb(255,255,32)"], [0.275862, "rgb(255,255,0)"], [0.310345, "rgb(255,232,0)"], [0.344828, "rgb(255,209,0)"], [0.37931, "rgb(255,185,0)"], [0.413793, "rgb(255,162,0)"], [0.448276, "rgb(255,139,0)"], [0.482759, "rgb(255,116,0)"], [0.517241, "rgb(255,93,0)"], [0.551724, "rgb(255,70,0)"], [0.586207, "rgb(255,46,0)"], [0.62069, "rgb(255,23,0)"], [0.655172, "rgb(255,0,0)"], [0.689655, "rgb(232,0,0)"], [0.724138, "rgb(209,0,0)"], [0.758621, "rgb(185,0,0)"], [0.793103, "rgb(162,0,0)"], [0.827586, "rgb(139,0,0)"], [0.862069, "rgb(116,0,0)"], [0.896552, "rgb(93,0,0)"], [0.931034, "rgb(70,0,0)"], [0.965517, "rgb(46,0,0)"], [1.0, "rgb(23,0,0)"]], "NRMSE_prct": [[0.0, "rgb(242,255,0)"], [0.03125, "rgb(204,255,0)"], [0.0625, "rgb(166,255,0)"], [0.09375, "rgb(128,255,0)"], [0.125, "rgb(89,255,0)"], [0.15625, "rgb(51,255,0)"], [0.1875, "rgb(13,255,0)"], [0.21875, "rgb(0,255,26)"], [0.25, "rgb(0,255,64)"], [0.28125, "rgb(0,255,102)"], [0.3125, "rgb(0,255,140)"], [0.34375, "rgb(0,255,178)"], [0.375, "rgb(0,255,217)"], [0.40625, "rgb(0,255,255)"], [0.4375, "rgb(0,217,255)"], [0.46875, "rgb(0,178,255)"], [0.5, "rgb(0,140,255)"], [0.53125, "rgb(0,102,255)"], [0.5625, "rgb(0,64,255)"], [0.59375, "rgb(0,26,255)"], [0.625, "rgb(13,0,255)"], [0.65625, "rgb(51,0,255)"], [0.6875, "rgb(89,0,255)"], [0.71875, "rgb(128,0,255)"], [0.75, "rgb(166,0,255)"], [0.78125, "rgb(204,0,255)"], [0.8125, "rgb(242,0,255)"], [0.84375, "rgb(255,0,230)"], [0.875, "rgb(255,0,191)"], [0.90625, "rgb(255,0,153)"], [0.9375, "rgb(255,0,115)"], [0.96875, "rgb(255,0,76)"], [1.0, "rgb(255,0,38)"]], "NBias": [[0.0, "rgb(242,255,0)"], [0.03125, "rgb(204,255,0)"], [0.0625, "rgb(166,255,0)"], [0.09375, "rgb(128,255,0)"], [0.125, "rgb(89,255,0)"], [0.15625, "rgb(51,255,0)"], [0.1875, "rgb(13,255,0)"], [0.21875, "rgb(0,255,26)"], [0.25, "rgb(0,255,64)"], [0.28125, "rgb(0,255,102)"], [0.3125, "rgb(0,255,140)"], [0.34375, "rgb(0,255,178)"], [0.375, "rgb(0,255,217)"], [0.40625, "rgb(0,255,255)"], [0.4375, "rgb(0,217,255)"], [0.46875, "rgb(0,178,255)"], [0.5, "rgb(0,140,255)"], [0.53125, "rgb(0,102,255)"], [0.5625, "rgb(0,64,255)"], [0.59375, "rgb(0,26,255)"], [0.625, "rgb(13,0,255)"], [0.65625, "rgb(51,0,255)"], [0.6875, "rgb(89,0,255)"], [0.71875, "rgb(128,0,255)"], [0.75, "rgb(166,0,255)"], [0.78125, "rgb(204,0,255)"], [0.8125, "rgb(242,0,255)"], [0.84375, "rgb(255,0,230)"], [0.875, "rgb(255,0,191)"], [0.90625, "rgb(255,0,153)"], [0.9375, "rgb(255,0,115)"], [0.96875, "rgb(255,0,76)"], [1.0, "rgb(255,0,38)"]]};
+
+const METRICS = {
+  "Corr.": {label: "Corr.", unit: "", cmin: -0.2, cmax: 1, colorscale: PALETTES["Corr."], decimals: 3},
+  "Bias": {label: "Bias", unit: "cm", cmin: -2, cmax: 2, colorscale: PALETTES["Bias"], decimals: 2},
+  "RMSE": {label: "RMSE", unit: "cm", cmin: 0, cmax: 22, colorscale: PALETTES["RMSE"], decimals: 2},
+  "NRMSE_prct": {label: "NRMSE", unit: "%", cmin: 0, cmax: 24, colorscale: PALETTES["NRMSE_prct"], decimals: 2},
+  "NBias": {label: "NBias", unit: "", cmin: -5, cmax: 5, colorscale: PALETTES["NBias"], decimals: 2}
+};
+
+let DATA = [];
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+    if (char === '"' && inQuotes && next === '"') { cell += '"'; i++; }
+    else if (char === '"') { inQuotes = !inQuotes; }
+    else if (char === ',' && !inQuotes) { row.push(cell); cell = ''; }
+    else if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') i++;
+      row.push(cell);
+      if (row.some(v => v.trim() !== '')) rows.push(row);
+      row = [];
+      cell = '';
+    } else { cell += char; }
+  }
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    if (row.some(v => v.trim() !== '')) rows.push(row);
+  }
+  const headers = rows.shift().map(h => h.trim());
+  return rows.map(r => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (r[i] ?? '').trim());
+    return obj;
+  });
+}
+
+function parseNumber(value) {
+  if (value === null || value === undefined) return NaN;
+  return Number(String(value).replace(',', '.'));
+}
+
+function formatValue(value, decimals, unit) {
+  if (!Number.isFinite(value)) return "NaN";
+  return value.toFixed(decimals) + (unit ? " " + unit : "");
+}
+
+function updateStats(metric) {
+  const values = DATA.map(d => d[metric]).filter(Number.isFinite);
+  const cfg = METRICS[metric];
+  const n = values.length;
+  const minv = Math.min(...values);
+  const maxv = Math.max(...values);
+  const mean = values.reduce((s, v) => s + v, 0) / n;
+  const outside = values.filter(v => v < cfg.cmin || v > cfg.cmax).length;
+  const unit = cfg.unit ? " " + cfg.unit : "";
+
+  document.getElementById('stats').innerHTML = `
+    <span class="pill">N = ${n} estaciones</span>
+    <span class="pill">min = ${minv.toFixed(cfg.decimals)}${unit}</span>
+    <span class="pill">max = ${maxv.toFixed(cfg.decimals)}${unit}</span>
+    <span class="pill">mean = ${mean.toFixed(cfg.decimals)}${unit}</span>
+    <span class="pill">rango color = [${cfg.cmin}, ${cfg.cmax}]${unit}</span>
+    <span class="pill">fuera de rango = ${outside}</span>
+  `;
+}
+
+function buildHoverText(d) {
+  return (
+    "<b>" + d.station + "</b><br>" +
+    "Lon: " + d.lon.toFixed(3) + "°<br>" +
+    "Lat: " + d.lat.toFixed(3) + "°<br>" +
+    "Corr.: " + d["Corr."].toFixed(3) + "<br>" +
+    "Bias: " + d.Bias.toFixed(2) + " cm<br>" +
+    "RMSE: " + d.RMSE.toFixed(2) + " cm<br>" +
+    "NRMSE: " + d.NRMSE_prct.toFixed(2) + " %<br>" +
+    "NBias: " + d.NBias.toFixed(2)
+  );
+}
+
+function makeTrace(metric) {
+  const cfg = METRICS[metric];
+  return {
+    type: 'scattergeo',
+    mode: 'markers',
+    lon: DATA.map(d => d.lon),
+    lat: DATA.map(d => d.lat),
+    text: DATA.map(buildHoverText),
+    hovertemplate: "%{text}<extra></extra>",
+    marker: {
+      size: 8,
+      color: DATA.map(d => d[metric]),
+      cmin: cfg.cmin,
+      cmax: cfg.cmax,
+      colorscale: cfg.colorscale,
+      line: {color: 'black', width: 0.7},
+      colorbar: {
+        title: cfg.unit ? cfg.label + " [" + cfg.unit + "]" : cfg.label,
+        orientation: 'h',
+        x: 0.5,
+        y: -0.08,
+        xanchor: 'center',
+        len: 0.65,
+        thickness: 18
+      }
+    }
+  };
+}
+
+function plotMap(metric) {
+  const layout = {
+    margin: {l: 10, r: 10, t: 10, b: 70},
+    paper_bgcolor: '#ffffff',
+    geo: {
+      projection: {type: 'natural earth'},
+      showland: true,
+      landcolor: 'rgb(230,235,225)',
+      showocean: true,
+      oceancolor: 'rgb(245,248,252)',
+      showcountries: true,
+      countrycolor: 'rgba(120,120,120,0.45)',
+      showcoastlines: true,
+      coastlinecolor: 'rgba(70,70,70,0.75)',
+      lonaxis: {showgrid: true, gridcolor: 'rgba(120,120,120,0.28)', dtick: 60},
+      lataxis: {showgrid: true, gridcolor: 'rgba(120,120,120,0.28)', dtick: 30}
+    }
+  };
+  Plotly.react('plot', [makeTrace(metric)], layout, {responsive: true, scrollZoom: true, displaylogo: false});
+  updateStats(metric);
+}
+
+function init(rows) {
+  DATA = rows.map(r => ({
+    station: r.station,
+    lon: parseNumber(r.lon),
+    lat: parseNumber(r.lat),
+    "Corr.": parseNumber(r["Corr"] ?? r["Corr."]),
+    Bias: parseNumber(r.Bias),
+    RMSE: parseNumber(r.RMSE),
+    NRMSE_prct: parseNumber(r.NRMSE_prct),
+    NBias: parseNumber(r.NBias)
+  })).filter(d =>
+    d.station &&
+    Number.isFinite(d.lon) &&
+    Number.isFinite(d.lat) &&
+    Number.isFinite(d["Corr."]) &&
+    Number.isFinite(d.Bias) &&
+    Number.isFinite(d.RMSE) &&
+    Number.isFinite(d.NRMSE_prct) &&
+    Number.isFinite(d.NBias)
+  );
+
+  if (!DATA.length) throw new Error("El CSV no tiene datos válidos. Debe contener: station, lon, lat, Corr o Corr., Bias, RMSE, NRMSE_prct, NBias.");
+
+  const selector = document.getElementById('metricSelect');
+  selector.addEventListener('change', () => plotMap(selector.value));
+  plotMap(selector.value);
+}
+
+fetch('bias_points.csv?cache=' + Date.now())
+  .then(response => {
+    if (!response.ok) throw new Error('No se pudo leer bias_points.csv');
+    return response.text();
+  })
+  .then(text => init(parseCSV(text)))
+  .catch(err => {
+    const box = document.getElementById('error');
+    box.style.display = 'block';
+    box.textContent = err.message;
+  });
+</script>
+</body>
+</html>
