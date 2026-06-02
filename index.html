@@ -13,6 +13,21 @@
     .subtitle { color: #555; margin-bottom: 14px; line-height: 1.45; }
     .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0 14px 0; }
     select { font-size: 15px; padding: 8px 10px; border-radius: 8px; border: 1px solid #b8c2d6; background: white; }
+    .radio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 1px solid #d2d8e6;
+  border-radius: 999px;
+  background: #f8faff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.radio-option input {
+  margin: 0;
+}
     .stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 14px 0; }
     .pill { background: #eef3ff; border: 1px solid #dbe5ff; color: #244a9b; padding: 8px 12px; border-radius: 999px; font-size: 14px; }
     #plot { width: 100%; height: 76vh; min-height: 620px; }
@@ -26,30 +41,46 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Validation statistics</h1>
+      <h1>Figures of GOS dataset</h1>
       <div class="subtitle">
-        Mapa interactivo generado desde <code>bias_points.csv</code>. Elige una estadística para colorear las estaciones.
+        Figure 5. Validation statistics of the GOS dataset after application of the radiational-tide filter, computed at model grid points located near 216 tide gauge stations.
       </div>
 
       <div class="controls">
-        <label for="metricSelect"><b>Variable:</b></label>
-        <select id="metricSelect">
-          <option value="Corr.">Corr.</option>
-          <option value="Bias">Bias</option>
-          <option value="RMSE">RMSE</option>
-          <option value="NRMSE_prct">NRMSE_prct</option>
-          <option value="NBias">NBias</option>
-        </select>
-      </div>
+       <b>Variable:</b>
+
+  <label class="radio-option">
+    <input type="radio" name="metric" value="Corr." checked>
+    Corr.
+  </label>
+
+  <label class="radio-option">
+    <input type="radio" name="metric" value="Bias">
+    Bias
+  </label>
+
+  <label class="radio-option">
+    <input type="radio" name="metric" value="RMSE">
+    RMSE
+  </label>
+
+  <label class="radio-option">
+    <input type="radio" name="metric" value="NRMSE_prct">
+    NRMSE (%)
+  </label>
+
+  <label class="radio-option">
+    <input type="radio" name="metric" value="NBias">
+    NBias
+  </label>
+</div>
 
       <div class="stats" id="stats"></div>
       <div class="links"><a href="bias_points.csv" download>Descargar CSV</a></div>
       <div id="plot"></div>
       <div id="error" class="error"></div>
       <div class="note">
-        Rangos fijos: Corr. [-0.2, 1], Bias [-2, 2] cm, RMSE [0, 22] cm,
-        NRMSE_prct [0, 24] %, NBias [-5, 5]. Los valores fuera de rango se saturan en color,
-        pero el hover muestra el valor real. Versión multi-variable.
+        propiedad de Elsy Ticse - IHCANTABRIA.
       </div>
     </div>
   </div>
@@ -215,9 +246,18 @@ function init(rows) {
 
   if (!DATA.length) throw new Error("El CSV no tiene datos válidos. Debe contener: station, lon, lat, Corr o Corr., Bias, RMSE, NRMSE_prct, NBias.");
 
-  const selector = document.getElementById('metricSelect');
-  selector.addEventListener('change', () => plotMap(selector.value));
-  plotMap(selector.value);
+  const metricRadios = document.querySelectorAll('input[name="metric"]');
+
+  metricRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.checked) {
+        plotMap(radio.value);
+      }
+    });
+  });
+
+const initialMetric = document.querySelector('input[name="metric"]:checked').value;
+plotMap(initialMetric);
 }
 
 fetch('bias_points.csv?cache=' + Date.now())
