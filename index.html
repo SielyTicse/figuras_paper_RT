@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bias - estaciones mareográficas</title>
+  <script src="https://cdn.plot.ly/plotly-3.1.0.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 0;
+      background: #f6f7fb;
+      color: #222;
+    }
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+      padding: 22px;
+    }
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #555;
+      margin-bottom: 14px;
+      line-height: 1.45;
+    }
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 12px 0 14px 0;
+    }
+    .pill {
+      background: #eef3ff;
+      border: 1px solid #dbe5ff;
+      color: #244a9b;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 14px;
+    }
+    #plot {
+      width: 100%;
+      height: 76vh;
+      min-height: 620px;
+    }
+    .links {
+      margin: 10px 0 4px 0;
+    }
+    .links a {
+      color: #0a58ca;
+      text-decoration: none;
+      margin-right: 16px;
+    }
+    .links a:hover {
+      text-decoration: underline;
+    }
+    .note {
+      color: #555;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Bias en estaciones mareográficas</h1>
+      <div class="subtitle">
+        Mapa interactivo generado desde CSV con longitud, latitud, nombre de estación y bias.
+        Usa la rueda del mouse o la barra superior para hacer zoom. Pasa el cursor sobre un punto para ver sus datos.
+      </div>
+
+      <div class="stats">
+        <span class="pill">N = 216 estaciones</span>
+        <span class="pill">mean |bias| = 0.0037</span>
+        <span class="pill">p+ = 44.9%</span>
+        <span class="pill">p- = 55.1%</span>
+      </div>
+
+      <div class="links">
+        <a href="bias_points.csv" download>Descargar CSV</a>
+      </div>
+
+      <div id="plot"></div>
+
+      <div class="note">
+        Esta versión usa coordenadas reales lon/lat del CSV, no coordenadas proyectadas recuperadas desde MATLAB .fig.
+      </div>
+    </div>
+  </div>
+
+<script>
+const d = {"station": ["ACoruna", "Aarhus", "Abashiri", "Aberdeen", "Aburatsu", "Adak Alaska", "Almeria", "Ancona", "Andenes", "Apia", "Arica", "Atlantic City", "Balboa", "Baltra", "Bamfield", "Barcelona", "Benoa", "Bilbao", "Bluff", "Bonanza", "Booby Island", "Brest", "Brisbane", "Broome", "Bundaberg", "Cabo San Lucas", "Calais", "Callao", "Cape Town", "Carnarvon", "Castletownbere", "Catania", "Charleston SC", "Cherbourg", "Chittagong", "Churchill", "Colombo", "Coquimbo", "Crescent City", "Cristobal", "Cromer", "Cuxhaven", "Dakar", "Darwin", "Davao", "Davis", "Duck Pier", "Dunkerque", "Durban", "Dutch Harbor", "East London", "El Hierro", "Esperance", "Faraday", "Ferrol", "Fort Denison", "Fort Pulaski", "Fort de France", "Fremantle", "Funchal", "Galveston Pier 21", "Galveston Pier", "Gandia", "Genova", "Gijon", "Gomera", "Goteborgorsh", "Guam", "Hakodate", "Halifax", "Hamada", "Helgeroa", "Helgoland", "Hilo Hawaii", "Hong Kong", "Honiara", "Honningsvag", "Honolulu Hawaii", "Huelva", "Ilha Fiscal", "Imbituba", "Imperia", "Iquique", "Ishigake", "Isla Pascua", "Juan Fernandez", "Kabelvag", "Kahului", "Kaohsiung", "Kawaihae", "Keelung", "Ketchikan", "Key West FL", "Ko Lak", "Ko Taphao Noi", "Kodiak", "Kushimoto", "Kushiro", "Kwajalein", "La Jolla", "La Libertad", "La Palma", "La Rochelle", "Lamu", "Langkawi", "Lanzarote Arrecife", "Las Palmas", "Lautoka", "Legaspi", "Lerwick", "Livorno", "Lombrum", "Maisaka", "Majuro", "Malaga", "Malakal", "Maloy", "Manila", "Manzanillo", "Marseille", "Masirah", "Mawson", "Melilla", "Mera", "Mokuoloe", "Mombasa", "Monaco", "Mossel Bay", "Nagasaki", "Naha", "Nain", "Nawiliwili", "Naze", "Neah Bay", "Newlyn", "Newport", "Nice", "Nishinoomote", "Nome", "North Shields", "Noumea", "Nuku alofa", "Nylesund", "Ofunato", "Padang", "Papeete", "Pensacola", "Ponta Delgada", "Port Bloc", "Port Elizabeth", "Port Hedland", "Port Louis", "Port Stanley", "Port Vila", "Port aux basques", "Portland", "Prigi", "Prince Rupert", "Prudhoe Bay", "Qaqortoq", "Ravenna", "Reunion", "Reykjavik", "Richards Bay", "Rorvik", "Sabang", "Saipan", "Salalah", "Saldahna Bay", "Salvador", "San Antonio", "San Diego", "San Francisco", "San Juan PR", "Sand Point", "Santa Cruz", "Santander", "Seward", "Simons Town", "Sitka", "Smogen", "South Beach", "Spring Bay", "St Johns", "St Marys", "Stockholm", "Stornoway", "Subic Bay", "Suva", "Syowa", "Talcahuano", "Tanjong Pagar", "Tarawa", "Tenerife", "Thevenard", "Thule", "Tofino", "Townsville", "Toyama", "Tregde", "Trieste", "Valencia", "Valparaiso", "Vardo", "Venezia", "Vigo", "Viker", "Villagarcia", "Virginia Key", "Vung Tau", "Wakkanai", "Wellington", "Whitby", "Wick", "Yakutat", "Zanzibar"], "lon": [-8.39, 10.2167, 144.283, -2.080222, 131.417, -176.635, -2.48, 13.506517, 16.15, -171.75, -70.323333, -74.418, -79.573, -90.285, -125.133, 2.163, 115.21, -3.05, 168.333, -6.34, 141.917, -4.5, 153.167, 122.217, 152.35, -109.908, 1.86772, -77.15, 18.417, 113.617, -9.183, 15.093825, -79.933, -1.635508, 91.827, -94.2, 79.858, -71.335278, -124.183, -79.9, 1.301639, 8.717, -17.42, 130.85, 125.633, 77.967, -75.74, 2.366698, 31.0, -166.538, 27.917, -17.9, 121.9, -64.267, -8.33, 151.233, -80.902, -61.067, 115.733, -16.907, -94.793, -94.788, -0.15, 8.925517, -5.7, -17.11, 11.8, 144.65, 140.733, -63.583, 132.067, 9.856379, 7.889923, -155.067, 114.217, 159.957, 25.983, -157.867, -6.83, -43.165, -48.650278, 8.018864, -70.147778, 124.15, -109.439444, -78.833, 14.482149, -156.467, 120.282, -155.833, 121.745, -131.625, -81.808, 99.817, 98.425, -152.512, 135.783, 144.383, 167.733, -117.258, -80.917, -17.77, -1.22065, 40.903, 99.765, -13.53, -15.41, 177.433, 123.75, -1.138, 10.299339, 147.367, 137.617, 171.373, -4.42, 134.463, 5.117, 120.967, -104.333, 5.35, 58.872, 62.867, -2.93, 139.833, -157.8, 39.657, 7.421497, 22.333, 129.867, 127.667, -61.7, -159.35, 129.498, -124.617, -5.53333, -71.327, 7.285257, 130.995, -165.43, -1.43333, 166.437, -175.167, 11.933, 141.717, 100.367, -149.567, -87.213, -25.673, -1.061555, 25.63, 118.567, 57.495, -57.933, 168.3, -59.133, 141.613, 111.733, -130.333, -148.527, -46.033, 12.282936, 55.293, -21.93989, 32.083, 11.25, 95.333, 145.742, 54.007, 17.95, -38.517, -71.618056, -117.173, -122.465, -66.117, -160.502, -90.312, -3.79, -149.427, 18.433, -135.342, 11.215, -124.043, 147.933, -52.717, -6.317139, 18.083, -6.388889, 120.252, 178.427, 39.6, -73.106111, 103.853, 172.93, -16.24, 133.64, -68.0, -125.917, 146.833, 137.217, 7.567, 13.757939, -0.31, -71.627778, 31.1, 12.426528, -8.73, 10.949769, -8.77, -80.162, 107.072, 141.683, 174.783, -0.614694, -3.086389, -139.735, 39.19], "lat": [43.36, 56.150002, 44.017, 57.144028, 31.567, 51.858, 36.83, 43.624767, 69.317, -13.817, -18.475833, 39.355, 8.962, -0.435, 48.833, 41.342, -8.745, 43.357, -46.6, 36.8, -10.6, 48.383, -27.367, -18.0, -24.833, 22.88, 50.969398, -12.05, -33.9, -24.883, 51.533, 37.498081, 32.783, 49.651447, 22.237, 58.783, 6.963, -29.949722, 41.745, 9.35, 52.934194, 53.867, 14.677, -12.467, 7.083, -68.45, 36.183, 51.048091, -29.883, 53.88, -33.0, 27.78, -33.867, -65.25, 43.46, -33.85, 32.033, 14.6, -32.05, 32.64, 29.31, 29.285, 39.0, 44.410128, 43.56, 28.09, 57.683, 13.433, 41.783, 44.667, 34.9, 58.995212, 54.178909, 19.733, 22.3, -9.425, 70.983, 21.307, 37.13, -22.897, -28.231111, 43.878339, -20.204444, 24.333, -27.154722, -33.622, 68.212639, 20.9, 22.615, 20.033, 25.157, 55.333, 24.553, 11.795, 7.832, 57.732, 33.467, 42.967, 8.733, 32.867, -2.2, 28.68, 46.158501, -2.272, 6.432, 28.97, 28.14, -17.6, 13.15, 60.153, 43.546286, -2.033, 34.683, 7.107, 36.71, 7.33, 61.933, 14.583, 19.05, 43.3, 20.687, -67.6, 35.29, 34.917, 21.433, -4.07, 43.728847, -34.067, 32.733, 26.217, 56.55, 21.967, 28.378, 48.368, 50.099998, 41.505, 43.695508, 30.732, 64.5, 55.0, -22.25, -21.133, 78.933, 39.067, -1.0, -17.525, 30.403, 37.735, 45.56848, -33.96, -20.317, -20.155, -51.75, -17.767, 47.567, -38.343, -8.283, 54.317, 70.4, 60.717, 44.492075, -20.923, 64.150581, -28.8, 64.867, 5.833, 15.277, 16.935, -33.017, -12.967, -33.581667, 32.715, 37.807, 18.46, 55.337, -0.753, 43.46, 60.12, -34.183, 57.052, 58.35, 44.625, -42.55, 47.567, 49.917833, 59.317, 58.207722, 14.765, -18.132, -69.0, -36.700833, 1.262, 1.362, 28.48, -32.15, 76.0, 49.15, -19.25, 36.767, 58.0, 45.649392, 39.44, -33.027778, 70.333, 45.418219, 42.24, 59.036046, 42.6, 25.732, 10.34, 45.4, -41.283, 54.49, 58.440972, 59.547, -6.155], "bias": [-0.00241, 0.004127, -0.001834, 0.004856, -0.001496, 0.003906, 0.001286, 0.000314, -0.007221, 0.001202, -0.000399, 0.007663, 0.001095, -0.002194, -0.015399, 0.001635, -0.016806, -0.00259, 0.001599, -0.006815, -0.006823, -0.001124, -0.00059, 0.001046, -0.002624, -0.004019, 0.009564, -0.001025, -9.3e-05, 0.001547, -0.001454, 0.002725, 0.003605, 0.002005, 0.006817, 0.003212, 0.002564, -0.001175, -0.012133, -0.001951, 0.014044, 0.021043, 0.002286, 0.000948, 0.003643, 0.00381, 0.001165, 0.008626, -0.003512, -0.000386, -0.006971, -0.002629, 0.001206, 0.002413, -0.003151, -0.000113, 0.002132, 0.004788, 0.000794, -0.001664, 0.003111, 0.004204, 0.00236, 0.000797, -0.002625, -0.002021, 0.001478, 0.001073, -0.002682, -0.003153, -0.000647, 0.001199, 0.011402, 0.000937, -0.012382, -0.001378, -0.001708, 0.0003, -0.003444, -0.004759, -0.01104, 0.001133, -0.001459, -0.00941, -0.001948, 0.000552, -0.00178, 0.001356, -0.000881, 0.001381, 0.000326, -0.010232, -0.000579, -0.006224, -0.005712, 0.001712, -0.002075, -0.002107, 0.002206, -0.001557, -0.002708, -0.001183, -0.000951, -2.7e-05, -0.003647, -0.000498, -0.001281, 0.001286, 0.003058, -0.004509, -0.000811, -0.000844, -0.002083, -0.002245, -0.000877, -1.8e-05, 0.001812, -0.003992, -0.00787, -0.006951, 0.004709, 0.006539, 0.000828, -0.003994, 0.00046, -0.000695, 0.002021, 0.002778, 0.002909, -0.011213, 0.007724, 0.00022, -0.011072, -0.021581, -0.002611, 0.008933, 0.002923, 0.003282, 0.01747, 0.001967, 0.000511, -0.0005, 0.002959, 0.001905, -0.006516, -0.000688, 0.003876, 0.002856, -0.002345, -0.001428, 0.000118, 0.001856, 0.00315, 0.003146, -0.002174, -5e-05, -0.013334, -0.004098, -0.009247, -0.004042, -0.002014, -0.000957, -0.000107, -0.003577, -0.000658, -0.004088, 0.000495, 0.010195, -0.001197, -0.004705, -0.002233, -0.002733, -0.005131, 0.001196, -0.002959, -0.002579, -0.003102, -0.00388, 0.003089, -0.001238, 0.000542, -0.017458, 0.001599, -0.000477, -0.002426, 0.001829, 0.002144, 0.006613, 0.001593, 0.005047, -0.006006, -0.008049, -0.001921, 0.001509, 0.019457, -0.00071, -0.015178, -0.006325, -0.00117, 0.000963, 0.004273, 0.003439, -0.002387, -0.000474, 0.002748, -0.00695, 0.002747, -0.007578, -0.006002, 0.004443, -0.000538, 0.001251, 0.003041, 0.003357, -0.002702, -0.00097], "n": 216, "bias_min": -0.0215813308333846, "bias_max": 0.0210428919295298, "bias_abs_mean": 0.0036899499771886213, "positive_pct": 44.907407407407405, "negative_pct": 55.092592592592595};
+
+const trace = {
+  type: 'scattergeo',
+  mode: 'markers',
+  lon: d.lon,
+  lat: d.lat,
+  text: d.station,
+  customdata: d.bias.map((b, i) => [d.station[i], d.lon[i], d.lat[i], b]),
+  hovertemplate:
+    '<b>%{customdata[0]}</b><br>' +
+    'Lon: %{customdata[1]:.3f}°<br>' +
+    'Lat: %{customdata[2]:.3f}°<br>' +
+    'Bias: %{customdata[3]:.4f}<extra></extra>',
+  marker: {
+    size: 8,
+    color: d.bias,
+    cmin: -0.0215813308333846,
+    cmax: 0.0215813308333846,
+    colorscale: 'RdBu',
+    reversescale: true,
+    line: {
+      color: 'black',
+      width: 0.7
+    },
+    colorbar: {
+      title: 'bias',
+      orientation: 'h',
+      x: 0.5,
+      y: -0.08,
+      xanchor: 'center',
+      len: 0.65,
+      thickness: 18
+    }
+  }
+};
+
+const layout = {
+  margin: {l: 10, r: 10, t: 10, b: 70},
+  paper_bgcolor: '#ffffff',
+  geo: {
+    projection: {
+      type: 'natural earth'
+    },
+    showland: true,
+    landcolor: 'rgb(230,235,225)',
+    showocean: true,
+    oceancolor: 'rgb(245,248,252)',
+    showcountries: true,
+    countrycolor: 'rgba(120,120,120,0.45)',
+    showcoastlines: true,
+    coastlinecolor: 'rgba(70,70,70,0.75)',
+    lonaxis: {
+      showgrid: true,
+      gridcolor: 'rgba(120,120,120,0.28)',
+      dtick: 60
+    },
+    lataxis: {
+      showgrid: true,
+      gridcolor: 'rgba(120,120,120,0.28)',
+      dtick: 30
+    }
+  }
+};
+
+const config = {
+  responsive: true,
+  scrollZoom: true,
+  displaylogo: false
+};
+
+Plotly.newPlot('plot', [trace], layout, config);
+</script>
+</body>
+</html>
