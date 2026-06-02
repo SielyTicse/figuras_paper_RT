@@ -7,6 +7,3 @@ Archivos:
 Columnas esperadas:
 station, lon, lat, bias
 
-Para publicar:
-1. Sube index.html y bias_points.csv a la raíz del repositorio.
-2. Activa GitHub Pages desde Settings > Pages > Deploy from a branch > main > /root.
